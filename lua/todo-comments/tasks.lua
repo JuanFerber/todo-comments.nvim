@@ -277,13 +277,15 @@ function M.toggle_fold()
   local fold_start = block.header_lnum + 2 -- 1-indexed next line after header
   local fold_end = block.end_lnum + 1
 
-  -- Ensure folding is enabled on window and allows manual fold creation
+  -- Ensure folding is enabled on window, allows 1-line folds, and permits manual fold creation.
+  -- Using 'noautocmd setlocal' prevents Neovim's runtime Treesitter OptionSet handler
+  -- from throwing errors if stale/invalid buffer IDs exist in its session cache.
   vim.wo.foldenable = true
   if vim.wo.foldminlines and vim.wo.foldminlines > 0 then
-    vim.wo.foldminlines = 0
+    pcall(vim.cmd, "noautocmd setlocal foldminlines=0")
   end
   if vim.wo.foldmethod ~= "manual" and vim.wo.foldmethod ~= "marker" then
-    vim.opt_local.foldmethod = "manual"
+    pcall(vim.cmd, "noautocmd setlocal foldmethod=manual")
   end
 
   local is_folded = vim.fn.foldclosed(fold_start) ~= -1
