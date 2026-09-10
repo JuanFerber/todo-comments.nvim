@@ -269,8 +269,9 @@ function M.highlight(buf, first, last, _event)
     local is_multiline = false
 
     if not kw and last_match and Config.options.highlight.multiline then
+      local ts_col = math.max(0, math.min(#line - 1, last_match.start - 1))
       if
-        M.is_comment(buf, lnum, last_match.start)
+        M.is_comment(buf, lnum, ts_col)
         and line:find(Config.options.highlight.multiline_pattern, last_match.start)
       then
         kw = last_match.kw

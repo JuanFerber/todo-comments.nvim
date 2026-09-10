@@ -50,4 +50,30 @@ local vt_reopened = marks_reopened[1] and marks_reopened[1][4].virt_text or {}
 print("Reopened State (Line 19):", vim.inspect(vt_reopened))
 assert(vt_reopened[1][1] == "▼ ", "Expected down arrow icon ▼ after reopening")
 
+-- 4. Test 1-line context folding (regression test for foldminlines)
+print("\n--- TEST: SINGLE-LINE CONTEXT FOLDING (foldminlines regression) ---")
+Highlight.highlight(buf, 0, vim.api.nvim_buf_line_count(buf))
+-- Line 67 in sample.lua is: "  -- NOTE: Single context line block"
+vim.api.nvim_win_set_cursor(0, { 67, 4 })
+Tasks.toggle_fold()
+
+local marks_1l_closed = vim.api.nvim_buf_get_extmarks(buf, ns, { 66, 0 }, { 66, -1 }, { details = true })
+local vt_1l_closed = marks_1l_closed[1] and marks_1l_closed[1][4].virt_text or {}
+print("1-Line Folded State (Line 67):", vim.inspect(vt_1l_closed))
+assert(vt_1l_closed[1][1] == "▶ ", "Expected ▶ on 1-line folded comment")
+local has_1l_text = false
+for _, chunk in ipairs(vt_1l_closed) do
+  if chunk[1]:find("%(%+1 lines%)") then
+    has_1l_text = true
+  end
+end
+assert(has_1l_text, "Expected (+1 lines) text in 1-line folded state")
+
+-- Reopen 1-line fold
+Tasks.toggle_fold()
+local marks_1l_reopened = vim.api.nvim_buf_get_extmarks(buf, ns, { 66, 0 }, { 66, -1 }, { details = true })
+local vt_1l_reopened = marks_1l_reopened[1] and marks_1l_reopened[1][4].virt_text or {}
+print("1-Line Reopened State (Line 67):", vim.inspect(vt_1l_reopened))
+assert(vt_1l_reopened[1][1] == "▼ ", "Expected ▼ on 1-line reopened comment")
+
 print("\n✨ ALL FOLDING AND ARROW ROTATION TESTS PASSED SUCCESSFULLY ✨\n")

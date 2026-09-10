@@ -279,6 +279,9 @@ function M.toggle_fold()
 
   -- Ensure folding is enabled on window and allows manual fold creation
   vim.wo.foldenable = true
+  if vim.wo.foldminlines and vim.wo.foldminlines > 0 then
+    vim.wo.foldminlines = 0
+  end
   if vim.wo.foldmethod ~= "manual" and vim.wo.foldmethod ~= "marker" then
     vim.opt_local.foldmethod = "manual"
   end

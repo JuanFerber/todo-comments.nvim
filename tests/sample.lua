@@ -63,5 +63,9 @@ local function process_payment(user_id, amount)
   -- [x] 1. Valid subtask done
   -- [ ] 2. Valid subtask pending
 
+  -- 10. Single context line comment block (1-line fold)
+  -- NOTE: Single context line block
+  -- Exactly one line of detail below header
+
   return true
 end
