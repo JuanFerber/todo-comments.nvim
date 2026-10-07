@@ -10,22 +10,42 @@
 - **highlight** your todo comments in different styles
 - optionally only highlights todos in comments using **TreeSitter**
 - configurable **signs**
-- **markdown task lists** inside `TODO` comments (`[ ]`, `[/]`, `[x]`) with live progress ratio (` 1/3 (33%)`)
+- **markdown task lists** inside `TODO` comments (`[ ]`, `[/]`, `[x]`) with live progress ratio (` 1/3 (33%)`) and full support for inline comments after code
 - **multiline context line indicators** (`+3 lines`) and simple **folding** (`:TodoToggleFold`)
 - interactive **checkbox toggling** (`:TodoToggle`)
 - open todos in a **quickfix** list
 - open todos in [Trouble](https://github.com/folke/trouble.nvim)
 - search todos with [Telescope](https://github.com/nvim-telescope/telescope.nvim) & [FzfLua](https://github.com/ibhagwan/fzf-lua) with progress & context badges
 
+## 🎬 Showcase
+
+### 1. Interactive Checkbox Toggling & Multiline Folding
+
+Cycle through task states (`[ ]` ➔ `[/]` ➔ `[x]`) with `:TodoToggle`, live completion ratio updates at EOL, and dynamic folding with `:TodoToggleFold`:
+
+![Interactive Checkbox Toggling and Multiline Folding](assets/todo_toggle_and_fold.gif)
+
+### 2. Full Inline Comment Support & Syntax Highlighting
+
+Highlight tasks in standalone blocks or directly after code statements (`local a = 1 -- TODO: [ ]`) with sign column status icons (`󰄱`, `󰡖`, `󰄵`) without false positives on types or code identifiers:
+
+![Full Inline Comment Support and Syntax Highlighting](assets/todo_toggle_inline.gif)
+
+### 3. Global Search & Picker Badges (Telescope / FzfLua / Trouble)
+
+View real-time task progress and context line counters with smart ellipsis truncation in picker windows:
+
+![Global Search and Picker Badges in Telescope](assets/todo_telescope_info.gif)
+
 ## ⚡️ Requirements
 
 - Neovim >= 0.8.0 (use the `neovim-pre-0.8.0` branch for older versions)
 - a [patched font](https://www.nerdfonts.com/) for the icons, or change them to simple ASCII characters
 - optional:
-  + [ripgrep](https://github.com/BurntSushi/ripgrep) and [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) are used for searching.
-  + [Trouble](https://github.com/folke/trouble.nvim)
-  + [Telescope](https://github.com/nvim-telescope/telescope.nvim)
-  + [FzfLua](https://github.com/ibhagwan/fzf-lua)
+  - [ripgrep](https://github.com/BurntSushi/ripgrep) and [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) are used for searching.
+  - [Trouble](https://github.com/folke/trouble.nvim)
+  - [Telescope](https://github.com/nvim-telescope/telescope.nvim)
+  - [FzfLua](https://github.com/ibhagwan/fzf-lua)
 
 ## 📦 Installation
 
@@ -146,7 +166,7 @@ Todo comes with the following defaults:
 
 ### Interactive Commands & Mappings
 
-You can toggle checkbox task states (`[ ]` ➔ `[/]` ➔ `[x]` ➔ `[ ]`) and fold/unfold multiline comments with:
+You can toggle checkbox task states (`[ ]` ➔ `[/]` ➔ `[x]` ➔ `[ ]`) on standalone or inline comments, and fold/unfold multiline comments with:
 
 ```lua
 -- Toggle checkbox status under cursor
