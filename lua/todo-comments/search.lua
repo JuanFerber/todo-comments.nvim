@@ -33,49 +33,13 @@ function M.process(lines)
 
       local start, finish, kw = Highlight.match(text)
 
-      if start then
+      if start and not (Config.options.highlight.comments_only and Util.is_inside_string(text:sub(1, start - 1))) then
         kw = Config.keywords[kw] or kw
         item.tag = kw
         item.text = vim.trim(text:sub(start))
         item.message = vim.trim(text:sub(finish + 1))
 
-        local header_tasks = { total = 0, done = 0, doing = 0 }
         local tasks_opts = Config.options.tasks
-        if kw == "TODO" and tasks_opts and tasks_opts.enabled then
-          for state, cb_cfg in pairs(tasks_opts.checkboxes) do
-            local cb_s = text:find(cb_cfg.pattern)
-            if cb_s then
-              local before = text:sub(1, cb_s - 1)
-              local trimmed = vim.trim(before)
-              local is_valid_pos = false
-              if trimmed == "" then
-                is_valid_pos = true
-              else
-                local without_comment = trimmed:gsub("^[%#%/%*%-;\"%%!]+", "")
-                without_comment = vim.trim(without_comment)
-                if
-                  without_comment == ""
-                  or without_comment:match("^[A-Z]+:?$")
-                  or without_comment:match("^[%-%*%+]%s*$")
-                  or without_comment:match("^%d+%.%s*$")
-                then
-                  is_valid_pos = true
-                end
-              end
-
-              if is_valid_pos then
-                header_tasks.total = 1
-                if state == "done" then
-                  header_tasks.done = 1
-                elseif state == "doing" then
-                  header_tasks.doing = 1
-                end
-                break
-              end
-            end
-          end
-        end
-
         local stats = { total = 0, done = 0, doing = 0, lines = 0 }
         if ok_tasks and Tasks and Tasks.get_block_stats then
           local s_ok, s_res = pcall(Tasks.get_block_stats, file, item.lnum, start, kw)
@@ -84,10 +48,9 @@ function M.process(lines)
           end
         end
 
-        local total_tasks = header_tasks.total + stats.total
-        local done_tasks = header_tasks.done + stats.done
-        local doing_tasks = header_tasks.doing + stats.doing
-
+        local total_tasks = stats.total
+        local done_tasks = stats.done
+        local doing_tasks = stats.doing
         item.tasks = { total = total_tasks, done = done_tasks, doing = doing_tasks }
         item.context_lines = stats.lines
 
@@ -95,7 +58,14 @@ function M.process(lines)
           local badges = {}
 
           -- Task progress badge
-          if kw == "TODO" and total_tasks > 0 and tasks_opts and tasks_opts.enabled and tasks_opts.progress and tasks_opts.progress.enabled ~= false then
+          if
+            kw == "TODO"
+            and total_tasks > 0
+            and tasks_opts
+            and tasks_opts.enabled
+            and tasks_opts.progress
+            and tasks_opts.progress.enabled ~= false
+          then
             local p_opts = tasks_opts.progress
             local parts = {}
             if p_opts.show_count ~= false then

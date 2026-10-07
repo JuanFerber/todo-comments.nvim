@@ -45,7 +45,7 @@ local function process_payment(user_id, amount)
   -- [/] Dispatch signed payload to payment gateway
   -- [ ] Issue electronic invoice
   -- [ ] Notify user via webhook and email
-  
+
   if amount <= 0 then
     -- WARN: Invalid transaction attempt detected
     -- Log security audit event with client IP.
@@ -69,3 +69,12 @@ local function process_payment(user_id, amount)
 
   return true
 end
+
+-- 11. Inline comment tasks after code
+local a = 1 -- TODO: [ ] lua inline task
+local b = 1 -- TODO: [/] python inline task
+local c = 2 -- TODO: [x] c inline task
+local d = 2 -- TODO: inline task
+
+-- 12. Single-line TODO header without checkbox
+-- TODO: Plain header without checkbox

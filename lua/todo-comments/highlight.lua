@@ -129,11 +129,12 @@ end
 function M._update()
   for buf, state in pairs(M.state) do
     if vim.api.nvim_buf_is_valid(buf) then
+      local line_count = vim.api.nvim_buf_line_count(buf)
       local todo = {} ---@type table<number, boolean>
       local wins = vim.fn.win_findbuf(buf)
       for _, win in pairs(wins) do
-        local first = vim.fn.line("w0", win) - 1
-        local last = vim.fn.line("w$", win)
+        local first = math.max(0, vim.fn.line("w0", win) - 1)
+        local last = math.min(vim.fn.line("w$", win) - 1, line_count - 1)
         for i = first, last do
           if not state.valid[i] then
             todo[i] = true
@@ -152,11 +153,16 @@ function M._update()
             i = i + 1
             last = dirty[i]
           end
-          M.highlight(buf, first, last)
-          for j = first, last do
+          local h_first, h_last = M.highlight(buf, first, last)
+          local mark_first = h_first or first
+          local mark_last = h_last or last
+          for j = mark_first, mark_last do
             state.valid[j] = true
           end
           i = i + 1
+          while dirty[i] and dirty[i] <= mark_last do
+            i = i + 1
+          end
         end
       end
     else
@@ -166,9 +172,30 @@ function M._update()
 end
 
 -- highlights the range for the given buf
+---@return integer? first
+---@return integer? last
 function M.highlight(buf, first, last, _event)
   if not vim.api.nvim_buf_is_valid(buf) then
     return
+  end
+
+  local line_count = vim.api.nvim_buf_line_count(buf)
+  first = math.max(0, first)
+  last = math.min(line_count - 1, last)
+
+  -- Expand first and last to full block boundaries so no multiline block is sliced
+  local ok_tasks, Tasks = pcall(require, "todo-comments.tasks")
+  if ok_tasks and Tasks and Tasks.get_block_at then
+    if first > 0 then
+      local start_block = Tasks.get_block_at(buf, first)
+      if start_block then
+        first = start_block.header_lnum
+      end
+    end
+    local end_block = Tasks.get_block_at(buf, last)
+    if end_block then
+      last = math.max(last, end_block.end_lnum)
+    end
   end
 
   vim.api.nvim_buf_clear_namespace(buf, Config.ns, first, last + 1)
@@ -206,7 +233,14 @@ function M.highlight(buf, first, last, _event)
     end
 
     -- 2. Task Progress (Specific to TODO when tasks.progress.enabled and total > 0)
-    if current_block.kw == "TODO" and tasks_opts and tasks_opts.enabled and tasks_opts.progress and tasks_opts.progress.enabled and current_block.total > 0 then
+    if
+      current_block.kw == "TODO"
+      and tasks_opts
+      and tasks_opts.enabled
+      and tasks_opts.progress
+      and tasks_opts.progress.enabled
+      and current_block.total > 0
+    then
       local p_opts = tasks_opts.progress
       local parts = {}
       if p_opts.show_count then
@@ -243,6 +277,7 @@ function M.highlight(buf, first, last, _event)
         virt_text = virt_chunks,
         virt_text_pos = "eol",
         priority = 500,
+        right_gravity = false,
       })
     end
 
@@ -271,8 +306,11 @@ function M.highlight(buf, first, last, _event)
     if not kw and last_match and Config.options.highlight.multiline then
       local ts_col = math.max(0, math.min(#line - 1, last_match.start - 1))
       if
-        M.is_comment(buf, lnum, ts_col)
-        and line:find(Config.options.highlight.multiline_pattern, last_match.start)
+        (M.is_comment(buf, lnum, ts_col) or M.is_comment(buf, lnum, 0))
+        and (
+          line:find(Config.options.highlight.multiline_pattern, last_match.start)
+          or line:find(Config.options.highlight.multiline_pattern, 1)
+        )
       then
         kw = last_match.kw
         start = last_match.start
@@ -345,57 +383,40 @@ function M.highlight(buf, first, last, _event)
 
       -- Markdown checkbox highlighting & parsing for TODOs
       local tasks_opts = Config.options.tasks
+      local placed_task_sign = false
       if tasks_opts and tasks_opts.enabled and kw == "TODO" then
-        for state, cb_cfg in pairs(tasks_opts.checkboxes) do
-          local cb_s, cb_e = line:find(cb_cfg.pattern)
-          if cb_s then
-            local before = line:sub(1, cb_s - 1)
-            local trimmed = vim.trim(before)
-            local is_valid_pos = false
-            if trimmed == "" then
-              is_valid_pos = true
-            else
-              local without_comment = trimmed:gsub("^[%#%/%*%-;\"%%!]+", "")
-              without_comment = vim.trim(without_comment)
-              if
-                without_comment == ""
-                or without_comment:match("^[A-Z]+:?$")
-                or without_comment:match("^[%-%*%+]%s*$")
-                or without_comment:match("^%d+%.%s*$")
-              then
-                is_valid_pos = true
-              end
+        local Tasks = require("todo-comments.tasks")
+        local kw_s = not is_multiline and (start + 1) or nil
+        local kw_f = not is_multiline and (finish + 1) or nil
+        local state, cb_s, cb_e = Tasks.find_checkbox(line, kw_s, kw_f)
+
+        if state and cb_s and cb_e then
+          local name = state:sub(1, 1):upper() .. state:sub(2)
+          add_highlight(buf, Config.ns, "TodoCheckbox" .. name, lnum, cb_s - 1, cb_e)
+
+          if current_block then
+            current_block.total = current_block.total + 1
+            if state == "done" then
+              current_block.done = current_block.done + 1
+            elseif state == "doing" then
+              current_block.doing = current_block.doing + 1
             end
+          end
 
-            if is_valid_pos then
-              local name = state:sub(1, 1):upper() .. state:sub(2)
-              add_highlight(buf, Config.ns, "TodoCheckbox" .. name, lnum, cb_s - 1, cb_e)
-
-              if current_block then
-                current_block.total = current_block.total + 1
-                if state == "done" then
-                  current_block.done = current_block.done + 1
-                elseif state == "doing" then
-                  current_block.doing = current_block.doing + 1
-                end
-              end
-
-              if tasks_opts.signs and is_multiline then
-                vim.fn.sign_place(
-                  0,
-                  "todo-signs",
-                  "todo-sign-task-" .. state,
-                  buf,
-                  { lnum = lnum + 1, priority = Config.options.sign_priority }
-                )
-              end
-              break
-            end
+          if tasks_opts.signs then
+            vim.fn.sign_place(
+              0,
+              "todo-signs",
+              "todo-sign-task-" .. state,
+              buf,
+              { lnum = lnum + 1, priority = Config.options.sign_priority }
+            )
+            placed_task_sign = true
           end
         end
       end
 
-      if not is_multiline then
+      if not is_multiline and not placed_task_sign then
         -- signs
         local show_sign = Config.options.signs
         if opts.signs ~= nil then
@@ -415,6 +436,7 @@ function M.highlight(buf, first, last, _event)
   end
 
   flush_block()
+  return first, last
 end
 
 function M.is_float(win)

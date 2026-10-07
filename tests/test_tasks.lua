@@ -46,4 +46,53 @@ local block = Tasks.get_block_at(buf, 0)
 print("Detected block:", vim.inspect(block))
 assert(block and block.header_lnum == 0 and block.end_lnum == 3, "Error in block detection")
 
+print("\n--- TEST 5: Toggle inline comment task [ ] -> [/] -> [x] -> [ ] ---")
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "local a = 1 -- TODO: [ ] inline task",
+})
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+Tasks.toggle()
+local l_inline = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+print("Result:", l_inline)
+assert(l_inline == "local a = 1 -- TODO: [/] inline task", "Expected [/], got: " .. tostring(l_inline))
+Tasks.toggle()
+l_inline = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+print("Result:", l_inline)
+assert(l_inline == "local a = 1 -- TODO: [x] inline task", "Expected [x], got: " .. tostring(l_inline))
+Tasks.toggle()
+l_inline = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+print("Result:", l_inline)
+assert(l_inline == "local a = 1 -- TODO: [ ] inline task", "Expected [ ], got: " .. tostring(l_inline))
+
+print("\n--- TEST 6: Toggle header without checkbox (single space insertion) ---")
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "-- TODO: foo",
+})
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+Tasks.toggle()
+local l_hdr = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+print("Result:", l_hdr)
+assert(l_hdr == "-- TODO: [ ] foo", "Expected '-- TODO: [ ] foo' without double space, got: " .. tostring(l_hdr))
+
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "-- TODO:foo",
+})
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+Tasks.toggle()
+local l_hdr2 = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+print("Result:", l_hdr2)
+assert(l_hdr2 == "-- TODO: [ ] foo", "Expected '-- TODO: [ ] foo', got: " .. tostring(l_hdr2))
+
+print("\n--- TEST 7: Block detection with inline header and shorter continuation lines ---")
+vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+  "local a = 1 -- TODO: Inline header with long prefix",
+  "-- [ ] subtask 1",
+  "-- [x] subtask 2",
+})
+local inline_block = Tasks.get_block_at(buf, 0)
+print("Detected inline block:", vim.inspect(inline_block))
+assert(
+  inline_block and inline_block.header_lnum == 0 and inline_block.end_lnum == 2,
+  "Expected inline block to span lines 0 to 2, got: " .. vim.inspect(inline_block)
+)
 print("✨ ALL STEP 3 TASK TESTS PASSED SUCCESSFULLY ✨\n")

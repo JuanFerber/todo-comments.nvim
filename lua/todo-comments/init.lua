@@ -21,10 +21,12 @@ end
 M.jump_prev = jump.prev
 M.jump_next = jump.next
 
+--- Cycles task checkbox state on the current line ([ ] -> [/] -> [x] -> [ ])
 function M.toggle()
   require("todo-comments.tasks").toggle()
 end
 
+--- Toggles folding for multiline context comment lines under the current block
 function M.toggle_fold()
   require("todo-comments.tasks").toggle_fold()
 end

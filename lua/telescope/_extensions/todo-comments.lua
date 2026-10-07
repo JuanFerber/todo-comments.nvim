@@ -30,8 +30,17 @@ local function todo(opts)
   opts.prompt_title = "Find Todo"
   opts.use_regex = true
   local entry_maker = make_entry.gen_from_vimgrep(opts)
+  local Util = require("todo-comments.util")
   opts.entry_maker = function(line)
     local ret = entry_maker(line)
+    if not ret then
+      return nil
+    end
+    local text = ret.text
+    local start, finish, kw = Highlight.match(text)
+    if start and Config.options.highlight.comments_only and Util.is_inside_string(text:sub(1, start - 1)) then
+      return nil
+    end
     ret.display = function(entry, picker)
       local text = entry.text
       local start, finish, kw = Highlight.match(text)
@@ -61,46 +70,18 @@ local function todo(opts)
           end
         end
 
-        local header_tasks = 0
-        local header_done = 0
         local tasks_opts = Config.options.tasks
-        if kw == "TODO" and tasks_opts and tasks_opts.enabled then
-          for state, cb_cfg in pairs(tasks_opts.checkboxes) do
-            local cb_s = text:find(cb_cfg.pattern)
-            if cb_s then
-              local before = text:sub(1, cb_s - 1)
-              local trimmed = vim.trim(before)
-              local is_valid_pos = false
-              if trimmed == "" then
-                is_valid_pos = true
-              else
-                local without_comment = trimmed:gsub("^[%#%/%*%-;\"%%!]+", "")
-                without_comment = vim.trim(without_comment)
-                if
-                  without_comment == ""
-                  or without_comment:match("^[A-Z]+:?$")
-                  or without_comment:match("^[%-%*%+]%s*$")
-                  or without_comment:match("^%d+%.%s*$")
-                then
-                  is_valid_pos = true
-                end
-              end
+        local total = stats.total
+        local done = stats.done
 
-              if is_valid_pos then
-                header_tasks = 1
-                if state == "done" then
-                  header_done = 1
-                end
-                break
-              end
-            end
-          end
-        end
-
-        local total = header_tasks + stats.total
-        local done = header_done + stats.done
-
-        if kw == "TODO" and total > 0 and tasks_opts and tasks_opts.enabled and tasks_opts.progress and tasks_opts.progress.enabled ~= false then
+        if
+          kw == "TODO"
+          and total > 0
+          and tasks_opts
+          and tasks_opts.enabled
+          and tasks_opts.progress
+          and tasks_opts.progress.enabled ~= false
+        then
           local p_opts = tasks_opts.progress
           local parts = {}
           if p_opts.show_count ~= false then
@@ -133,7 +114,9 @@ local function todo(opts)
 
       local prefix_str = icon .. " " .. pos_info
       local tag_with_space = tag_str .. " "
-      local fixed_w = vim.api.nvim_strwidth(prefix_str) + vim.api.nvim_strwidth(tag_with_space) + vim.api.nvim_strwidth(suffix)
+      local fixed_w = vim.api.nvim_strwidth(prefix_str)
+        + vim.api.nvim_strwidth(tag_with_space)
+        + vim.api.nvim_strwidth(suffix)
       local msg_w = vim.api.nvim_strwidth(msg_str)
 
       if fixed_w + msg_w > max_w then

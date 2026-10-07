@@ -56,4 +56,28 @@ function M.error(msg)
   vim.notify(msg, vim.log.levels.ERROR, { title = "TodoComments" })
 end
 
+--- Checks whether the end of str is inside an unclosed string literal (double or single quote)
+---@param str string
+---@return boolean
+function M.is_inside_string(str)
+  if not str or str == "" then
+    return false
+  end
+  local in_double = false
+  local in_single = false
+  local i = 1
+  while i <= #str do
+    local c = str:sub(i, i)
+    if c == "\\" then
+      i = i + 1 -- skip escaped char
+    elseif c == '"' and not in_single then
+      in_double = not in_double
+    elseif c == "'" and not in_double then
+      in_single = not in_single
+    end
+    i = i + 1
+  end
+  return in_double or in_single
+end
+
 return M

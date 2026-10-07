@@ -17,7 +17,7 @@ local Tasks = require("todo-comments.tasks")
 local Highlight = require("todo-comments.highlight")
 local ns = require("todo-comments.config").ns
 
-print("\n--- TEST: MULTILINE FOLDING & ARROW ROTATION ---")
+print("\n--- TEST 1: MULTILINE FOLDING & ARROW ROTATION ---")
 -- 1. Initial State: Unfolded / Open
 Highlight.highlight(buf, 0, vim.api.nvim_buf_line_count(buf))
 local marks_open = vim.api.nvim_buf_get_extmarks(buf, ns, { 18, 0 }, { 18, -1 }, { details = true })
@@ -51,7 +51,7 @@ print("Reopened State (Line 19):", vim.inspect(vt_reopened))
 assert(vt_reopened[1][1] == "▼ ", "Expected down arrow icon ▼ after reopening")
 
 -- 4. Test 1-line context folding (regression test for foldminlines)
-print("\n--- TEST: SINGLE-LINE CONTEXT FOLDING (foldminlines regression) ---")
+print("\n--- TEST 2: SINGLE-LINE CONTEXT FOLDING (foldminlines regression) ---")
 Highlight.highlight(buf, 0, vim.api.nvim_buf_line_count(buf))
 -- Line 67 in sample.lua is: "  -- NOTE: Single context line block"
 vim.api.nvim_win_set_cursor(0, { 67, 4 })
@@ -76,4 +76,35 @@ local vt_1l_reopened = marks_1l_reopened[1] and marks_1l_reopened[1][4].virt_tex
 print("1-Line Reopened State (Line 67):", vim.inspect(vt_1l_reopened))
 assert(vt_1l_reopened[1][1] == "▼ ", "Expected ▼ on 1-line reopened comment")
 
+-- 5. Regression test: Verify that folding Line 9 does not slice neighboring blocks (Lines 19, 26, 32, 43)
+print("\n--- TEST 3: MULTI-BLOCK ATOMICITY UNDER FOLDING AND VIEWPORT INVALIDATION ---")
+local function get_mark_text(line_num)
+  local marks = vim.api.nvim_buf_get_extmarks(buf, ns, { line_num - 1, 0 }, { line_num - 1, -1 }, { details = true })
+  for _, m in ipairs(marks) do
+    local vt = m[4].virt_text
+    if vt then
+      local str = ""
+      for _, c in ipairs(vt) do str = str .. c[1] end
+      return str
+    end
+  end
+  return "NONE"
+end
+
+-- Fold Line 9 (WARN)
+vim.api.nvim_win_set_cursor(0, { 9, 0 })
+Tasks.toggle_fold()
+Highlight._update()
+
+assert(get_mark_text(9):find("%(%+3 lines%)"), "Line 9 must show (+3 lines)")
+assert(get_mark_text(19):find("2/4"), "Line 19 must stay 2/4 (not truncated to 2/3)")
+assert(get_mark_text(26):find("3/3"), "Line 26 must stay 3/3 (not disappear)")
+assert(get_mark_text(32):find("1/4"), "Line 32 must stay 1/4 (not truncated to 1/1)")
+assert(get_mark_text(43):find("1/4"), "Line 43 must stay 1/4 (not truncated to 1/1)")
+
+-- Re-open Line 9
+Tasks.toggle_fold()
+Highlight._update()
+assert(get_mark_text(19):find("2/4"), "Line 19 must stay 2/4 after re-opening line 9")
+print("Multi-block stability: Line 19 (2/4), Line 26 (3/3), Line 32 (1/4), Line 43 (1/4) all maintained!")
 print("\n✨ ALL FOLDING AND ARROW ROTATION TESTS PASSED SUCCESSFULLY ✨\n")

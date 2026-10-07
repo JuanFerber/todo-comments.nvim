@@ -11,7 +11,7 @@ M.loaded = false
 M.ns = vim.api.nvim_create_namespace("todo-comments")
 
 --- @class TodoOptions
--- TODO: add support for markdown todos
+-- markdown todos supported via options.tasks
 local defaults = {
   signs = true, -- show icons in the signs column
   sign_priority = 8, -- sign priority

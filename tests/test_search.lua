@@ -22,6 +22,10 @@ local fake_rg_lines = {
   "tests/sample.lua:50:8:    -- WARN: Invalid transaction attempt detected",
   "tests/sample.lua:57:6:  -- TODO: Single line todo without any continuation comments",
   "tests/sample.lua:61:6:  -- TODO: TypeScript refactor",
+  "tests/sample.lua:74:16:local a = 1 -- TODO: [ ] lua inline task",
+  "tests/sample.lua:75:16:local b = 1 -- TODO: [/] python inline task",
+  "tests/sample.lua:76:16:local c = 2 -- TODO: [x] c inline task",
+  "tests/sample.lua:80:4:-- TODO: Plain header without checkbox",
 }
 
 local results = Search.process(fake_rg_lines)
@@ -72,4 +76,22 @@ assert(
     .. tostring(todo_ts_refactor.tasks.total)
 )
 
+local todo_lua_inline = results[13]
+assert(todo_lua_inline.tasks.total == 1 and todo_lua_inline.tasks.done == 0, "Lua inline task must have 0/1 tasks")
+assert(todo_lua_inline.text:find("%[0/1 %(0%%%)]"), "Lua inline task must render [0/1 (0%)] badge")
+
+local todo_py_inline = results[14]
+assert(
+  todo_py_inline.tasks.total == 1 and todo_py_inline.tasks.done == 0 and todo_py_inline.tasks.doing == 1,
+  "Python inline task must have 0/1 tasks (1 doing)"
+)
+assert(todo_py_inline.text:find("%[0/1 %(0%%%)]"), "Python inline task must render [0/1 (0%)] badge")
+
+local todo_c_inline = results[15]
+assert(todo_c_inline.tasks.total == 1 and todo_c_inline.tasks.done == 1, "C inline task must have 1/1 tasks")
+assert(todo_c_inline.text:find("%[1/1 %(100%%%)]"), "C inline task must render [1/1 (100%)] badge")
+
+local todo_plain_header = results[16]
+assert(todo_plain_header.tasks.total == 0, "Plain header without checkbox must have 0 tasks")
+assert(not todo_plain_header.text:find("%[0/"), "Plain header must not render task badge")
 print("✨ ALL SEARCH & TASK BADGE TESTS PASSED SUCCESSFULLY ✨\n")
