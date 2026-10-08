@@ -301,7 +301,6 @@ end
 function M.toggle()
   local tasks_opts = Config.options.tasks
   if tasks_opts and tasks_opts.enabled == false then
-    local Util = require("todo-comments.util")
     Util.warn(
       "Task checkboxes are disabled. Enable them with 'tasks = { enabled = true }' or remove the :TodoToggle mapping."
     )
@@ -363,7 +362,6 @@ end
 function M.toggle_fold()
   local hl_opts = Config.options.highlight
   if hl_opts and hl_opts.folding and hl_opts.folding.enabled == false then
-    local Util = require("todo-comments.util")
     Util.warn(
       "Multiline folding is disabled. Enable it with 'highlight = { folding = { enabled = true } }' or remove the :TodoToggleFold mapping."
     )

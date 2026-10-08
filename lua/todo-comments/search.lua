@@ -16,6 +16,9 @@ local function keywords_filter(opts_keywords)
   end, all_keywords)
 end
 
+--- Processes raw ripgrep output lines into structured todo items with task and context metrics
+---@param lines string[]
+---@return table[]
 function M.process(lines)
   local results = {}
   local ok_tasks, Tasks = pcall(require, "todo-comments.tasks")
@@ -100,6 +103,9 @@ function M.process(lines)
   return results
 end
 
+--- Asynchronously searches for todo comments using ripgrep
+---@param cb fun(results: table[])
+---@param opts? {cwd?: string, keywords?: string, disable_not_found_warnings?: boolean}
 function M.search(cb, opts)
   opts = opts or {}
   opts.cwd = opts.cwd or "."
@@ -154,14 +160,21 @@ local function parse_opts(opts)
   }
 end
 
+--- Populates the quickfix list with project todo comments
+---@param opts? string|table
 function M.setqflist(opts)
   M.setlist(opts)
 end
 
+--- Populates the location list with project todo comments
+---@param opts? string|table
 function M.setloclist(opts)
   M.setlist(opts, true)
 end
 
+--- Populates and opens quickfix or location list
+---@param opts? string|table
+---@param use_loclist? boolean
 function M.setlist(opts, use_loclist)
   opts = parse_opts(opts) or {}
   opts.open = (opts.open ~= nil and { opts.open } or { true })[1]

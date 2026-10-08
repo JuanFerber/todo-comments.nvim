@@ -31,6 +31,7 @@ local function todo(opts)
   opts.use_regex = true
   local entry_maker = make_entry.gen_from_vimgrep(opts)
   local Util = require("todo-comments.util")
+  local ok_tasks, Tasks = pcall(require, "todo-comments.tasks")
   opts.entry_maker = function(line)
     local ret = entry_maker(line)
     if not ret then
@@ -61,7 +62,6 @@ local function todo(opts)
       local search_badges = Config.options.search and Config.options.search.badges ~= false
 
       if search_badges then
-        local ok_tasks, Tasks = pcall(require, "todo-comments.tasks")
         local stats = { total = 0, done = 0, doing = 0, lines = 0 }
         if ok_tasks and Tasks and Tasks.get_block_stats then
           local s_ok, s_res = pcall(Tasks.get_block_stats, entry.filename, entry.lnum, start, kw)
