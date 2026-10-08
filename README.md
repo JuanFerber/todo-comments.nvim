@@ -17,26 +17,6 @@
 - open todos in [Trouble](https://github.com/folke/trouble.nvim)
 - search todos with [Telescope](https://github.com/nvim-telescope/telescope.nvim) & [FzfLua](https://github.com/ibhagwan/fzf-lua) with progress & context badges
 
-## 🎬 Showcase
-
-### 1. Interactive Checkbox Toggling & Multiline Folding
-
-Cycle through task states (`[ ]` ➔ `[/]` ➔ `[x]`) with `:TodoToggle`, live completion ratio updates at EOL, and dynamic folding with `:TodoToggleFold`:
-
-![Interactive Checkbox Toggling and Multiline Folding](assets/todo_toggle_and_fold.gif)
-
-### 2. Full Inline Comment Support & Syntax Highlighting
-
-Highlight tasks in standalone blocks or directly after code statements (`local a = 1 -- TODO: [ ]`) with sign column status icons (`󰄱`, `󰡖`, `󰄵`) without false positives on types or code identifiers:
-
-![Full Inline Comment Support and Syntax Highlighting](assets/todo_toggle_inline.gif)
-
-### 3. Global Search & Picker Badges (Telescope / FzfLua / Trouble)
-
-View real-time task progress and context line counters with smart ellipsis truncation in picker windows:
-
-![Global Search and Picker Badges in Telescope](assets/todo_telescope_info.gif)
-
 ## ⚡️ Requirements
 
 - Neovim >= 0.8.0 (use the `neovim-pre-0.8.0` branch for older versions)
@@ -221,6 +201,18 @@ Each of the commands below accept the following arguments:
 :TodoTelescope keywords=TODO,FIX
 ```
 
+### 🔄 `:TodoToggle`
+
+Toggle the checkbox status of a task (`[ ]` ➔ `[/]` ➔ `[x]` ➔ `[ ]`) on standalone comments or inline comments after code. If the line is inside a `TODO` comment without a checkbox, it cleanly inserts `[ ]`.
+
+![Todo Toggle](assets/todo_toggle_inline.gif)
+
+### 📁 `:TodoToggleFold`
+
+Toggle folding for multiline context lines under the current comment block, dynamically rotating between open (`▼`) and closed (`▶ (+N lines)`).
+
+![Todo Toggle and Fold](assets/todo_toggle_and_fold.gif)
+
 ### 🔎 `:TodoQuickFix`
 
 This uses the quickfix list to show all todos in your project.
@@ -245,7 +237,7 @@ Use Trouble's filtering: `Trouble todo filter = {tag = {TODO,FIX,FIXME}}`
 
 Search through all project todos with Telescope
 
-![image](https://user-images.githubusercontent.com/292349/118135371-ccb91200-b3b7-11eb-9002-66af3b683cf0.png)
+![Todo Telescope](assets/todo_telescope_info.gif)
 
 > [!Note]
 > The same can be done with `:TodoFzfLua`
