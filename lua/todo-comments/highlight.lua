@@ -52,7 +52,7 @@ function M.match(str, patterns)
     if #m > 1 and m[2] then
       local match = m[2]
       local kw = m[3] ~= "" and m[3] or m[2]
-      local start = str:find(match, 1, true)
+      local start = m[1]:match(".*()" .. match .. "%s*:$") or str:find(match, 1, true)
       return start, start + #match, kw
     end
   end
@@ -214,9 +214,9 @@ function M.highlight(buf, first, last, _event)
 
   ---@type {header_lnum: integer, kw: string, total: integer, done: integer, doing: integer, lines: integer, end_lnum: integer}?
   local current_block
-
+  local is_qf = M.is_quickfix(buf)
   local function flush_block()
-    if not current_block then
+    if not current_block or is_qf then
       return
     end
 
@@ -325,7 +325,7 @@ function M.highlight(buf, first, last, _event)
       kw = Config.keywords[kw] or kw
     end
 
-    if not is_multiline and kw then
+    if not is_multiline and kw and not is_qf then
       flush_block()
       current_block = {
         header_lnum = lnum,
@@ -339,7 +339,7 @@ function M.highlight(buf, first, last, _event)
     elseif is_multiline and current_block then
       current_block.lines = current_block.lines + 1
       current_block.end_lnum = lnum
-    elseif not is_multiline and not kw then
+    elseif not is_multiline and not kw and not is_qf then
       flush_block()
     end
 
