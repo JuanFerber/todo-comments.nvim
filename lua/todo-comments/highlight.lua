@@ -91,7 +91,13 @@ end
 ---@param from number
 ---@param to number
 local function add_highlight(buf, ns, hl, line, from, to)
-  vim.api.nvim_buf_set_extmark(buf, ns, line, from, {
+  if from < 0 then
+    from = 0
+  end
+  if to and to < from then
+    return
+  end
+  pcall(vim.api.nvim_buf_set_extmark, buf, ns, line, from, {
     end_col = to,
     hl_group = hl,
     priority = 500,
@@ -305,16 +311,15 @@ function M.highlight(buf, first, last, _event)
 
     if not kw and last_match and Config.options.highlight.multiline then
       local ts_col = math.max(0, math.min(#line - 1, last_match.start - 1))
+      local m_start = line:find(Config.options.highlight.multiline_pattern, last_match.start)
+        or line:find(Config.options.highlight.multiline_pattern, 1)
       if
         (M.is_comment(buf, lnum, ts_col) or M.is_comment(buf, lnum, 0))
-        and (
-          line:find(Config.options.highlight.multiline_pattern, last_match.start)
-          or line:find(Config.options.highlight.multiline_pattern, 1)
-        )
+        and m_start
       then
         kw = last_match.kw
-        start = last_match.start
-        finish = start
+        start = m_start
+        finish = m_start
         is_multiline = true
       else
         last_match = nil
@@ -357,30 +362,35 @@ function M.highlight(buf, first, last, _event)
       if not is_multiline then
         -- before highlights
         if hl.before == "fg" then
-          add_highlight(buf, Config.ns, hl_fg, lnum, 0, start)
+          local b_to = math.min(math.max(start, 0), #line)
+          add_highlight(buf, Config.ns, hl_fg, lnum, 0, b_to)
         elseif hl.before == "bg" then
-          add_highlight(buf, Config.ns, hl_bg, lnum, 0, start)
+          local b_to = math.min(math.max(start, 0), #line)
+          add_highlight(buf, Config.ns, hl_bg, lnum, 0, b_to)
         end
 
         -- tag highlights
+        local tag_from = math.min(math.max(start, 0), #line)
+        local tag_to = math.min(math.max(finish, 0), #line)
         if hl.keyword == "wide" or hl.keyword == "wide_bg" then
-          add_highlight(buf, Config.ns, hl_bg, lnum, math.max(start - 1, 0), finish + 1)
+          add_highlight(buf, Config.ns, hl_bg, lnum, math.max(tag_from - 1, 0), math.min(tag_to + 1, #line))
         elseif hl.keyword == "wide_fg" then
-          add_highlight(buf, Config.ns, hl_fg, lnum, math.max(start - 1, 0), finish + 1)
+          add_highlight(buf, Config.ns, hl_fg, lnum, math.max(tag_from - 1, 0), math.min(tag_to + 1, #line))
         elseif hl.keyword == "bg" then
-          add_highlight(buf, Config.ns, hl_bg, lnum, start, finish)
+          add_highlight(buf, Config.ns, hl_bg, lnum, tag_from, tag_to)
         elseif hl.keyword == "fg" then
-          add_highlight(buf, Config.ns, hl_fg, lnum, start, finish)
+          add_highlight(buf, Config.ns, hl_fg, lnum, tag_from, tag_to)
         end
       end
 
       -- after highlights
       if hl.after == "fg" then
-        add_highlight(buf, Config.ns, hl_fg, lnum, finish, #line)
+        local a_from = math.min(math.max(finish, 0), #line)
+        add_highlight(buf, Config.ns, hl_fg, lnum, a_from, #line)
       elseif hl.after == "bg" then
-        add_highlight(buf, Config.ns, hl_bg, lnum, finish, #line)
+        local a_from = math.min(math.max(finish, 0), #line)
+        add_highlight(buf, Config.ns, hl_bg, lnum, a_from, #line)
       end
-
       -- Markdown checkbox highlighting & parsing for TODOs
       local tasks_opts = Config.options.tasks
       local placed_task_sign = false
